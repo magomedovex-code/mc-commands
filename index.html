@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MC Command Hub</title>
+  <meta name="description" content="Command block reference and generator for Minecraft Java Edition 1.21.11 — every command that works in a command block, overpowered gear, kits, PvP arenas and generators. Runs fully in your browser.">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0a0c10">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f1720'/%3E%3Cpath d='M16 6 26 16 16 26 6 16z' fill='none' stroke='%234ade80' stroke-width='3' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip-link" href="#view">Skip to content</a>
+
+  <!-- Header: logo + language switch -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#all">
+        <span class="logo" aria-hidden="true"></span>
+        <span class="brand-text">
+          <span class="brand-name">MC Command Hub</span>
+          <span class="brand-tag" data-i18n="tagline">Every command that works in a command block — Java 1.21.11</span>
+        </span>
+      </a>
+      <span class="ver-chip">Java 1.21.11 · command blocks</span>
+      <div class="lang-switch" role="group" aria-label="Language / Язык / Sprache">
+        <button class="lang-btn" type="button" data-lang="en" aria-pressed="false">EN</button>
+        <button class="lang-btn" type="button" data-lang="ru" aria-pressed="false">RU</button>
+        <button class="lang-btn" type="button" data-lang="de" aria-pressed="false">DE</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sticky bar: search, player selector, options, category tabs -->
+  <div class="sticky">
+    <div class="toolbar">
+      <div class="toolbar-inner">
+        <div class="search-wrap">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="search" class="input search" type="search" autocomplete="off" spellcheck="false"
+                 placeholder="Search commands…" data-i18n-ph="search" data-i18n-aria="search" aria-label="Search commands">
+          <kbd class="search-kbd" title="Press / to search" data-i18n-title="searchHint">/</kbd>
+        </div>
+
+        <div class="target">
+          <label class="target-label" for="target-select" data-i18n="target">Target</label>
+          <select id="target-select" class="input"></select>
+          <input id="target-name" class="input target-name" type="text" maxlength="16" autocomplete="off"
+                 spellcheck="false" placeholder="PlayerName" data-i18n-ph="namePh" aria-label="Player name" hidden>
+          <span id="target-hint" class="target-hint" hidden></span>
+        </div>
+
+        <label class="check switch" title="Leave out minecraft:" data-i18n-title="shortIdsTip">
+          <input id="short-ids" type="checkbox">
+          <span data-i18n="shortIds">Short IDs</span>
+        </label>
+      </div>
+    </div>
+    <nav id="tabs" class="tabs" aria-label="Categories"></nav>
+  </div>
+
+  <!-- Content is rendered by script.js -->
+  <main id="view" class="view" tabindex="-1">
+    <noscript>
+      <p class="empty">MC Command Hub needs JavaScript. Please enable it in your browser.</p>
+    </noscript>
+  </main>
+
+  <footer class="footer">
+    <p data-i18n="footer">Made for vanilla Minecraft Java 1.21.11 · Runs fully in your browser · Not affiliated with Mojang or Microsoft.</p>
+  </footer>
+
+  <button id="to-top" class="to-top" type="button" aria-label="Back to top" data-i18n-aria="toTop">▲</button>
+
+  <!-- Data first, then the app -->
+  <script src="commands.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
