@@ -109,19 +109,21 @@ const GROUPS = {
 };
 
 /* ---------- Game rule helper (1.21.11 renamed all game rules) ---------- */
-const GR_NEW = T("1.21.11+ (new name)", "1.21.11+ (новое имя)", "1.21.11+ (neuer Name)");
-const GR_OLD = T("Before 1.21.11 (old name)", "До 1.21.11 (старое имя)", "Vor 1.21.11 (alter Name)");
 const GR_NOTE = T(
-  "Minecraft 1.21.11 renamed the game rules (e.g. doDaylightCycle → advance_time). Not sure which name your server accepts? Type /gamerule, a space, then press Tab to see the valid names.",
-  "В Minecraft 1.21.11 игровые правила переименованы (например, doDaylightCycle → advance_time). Не уверены, какое имя принимает сервер? Введите /gamerule, пробел и нажмите Tab — игра покажет верные имена.",
-  "Minecraft 1.21.11 hat die Spielregeln umbenannt (z. B. doDaylightCycle → advance_time). Unsicher, welcher Name auf deinem Server gilt? Tippe /gamerule, ein Leerzeichen und drücke Tab, um die gültigen Namen zu sehen."
+  "1.21.11 renamed every game rule and the old camelCase names were removed — they fail with “Incorrect argument”. Only the new name works.",
+  "В 1.21.11 все игровые правила переименованы, а старые имена в camelCase удалены — они выдают «Incorrect argument». Работает только новое имя.",
+  "1.21.11 hat alle Spielregeln umbenannt, die alten camelCase-Namen wurden entfernt — sie scheitern mit „Incorrect argument“. Nur der neue Name funktioniert."
 );
 
-/** Returns command lines for a game rule: new 1.21.11 name first, old name second. */
-function grLines(newName, oldName, value, oldLabel) {
-  const lines = [{ c: `gamerule ${newName} ${value}`, label: GR_NEW }];
-  if (oldName) lines.push({ c: `gamerule ${oldName} ${value}`, label: oldLabel || GR_OLD });
-  return lines;
+/**
+ * A game rule command line. Verified on a real 1.21.11 server: only the new
+ * snake_case name is accepted, so the old name appears in the label only.
+ */
+function grLines(newName, oldName, value) {
+  const label = oldName
+    ? T(`1.21.11 name (was ${oldName})`, `имя в 1.21.11 (раньше ${oldName})`, `Name in 1.21.11 (früher ${oldName})`)
+    : T("1.21.11 name", "имя в 1.21.11", "Name in 1.21.11");
+  return [{ c: `gamerule ${newName} ${value}`, label }];
 }
 
 /* ---------- Reusable enchantment lists (1.21.5+ component format) ---------- */
@@ -491,7 +493,7 @@ const COMMANDS = [
   ),
   cmds: [
     { c: "team modify red seeFriendlyInvisibles true", label: T("See invisible teammates", "Видеть невидимых союзников", "Unsichtbare Mitspieler sehen") },
-    { c: "teammsg Push left!", label: T("Team chat (alias: tm)", "Чат команды (сокращение: tm)", "Team-Chat (Kurzform: tm)") },
+    { c: 'tellraw @a[team=red] {"text":"Push left!","color":"red"}', label: T("Message only the red team", "Сообщение только красной команде", "Nachricht nur ans rote Team") },
     { c: "team leave {NAME}", label: T("Leave a team", "Выйти из команды", "Team verlassen") },
     { c: "team remove red", label: T("Delete a team", "Удалить команду", "Team löschen") },
   ],
@@ -546,13 +548,13 @@ const COMMANDS = [
     "Встаньте на арене. Строка 1 задаёт точку возрождения всем игрокам онлайн, строка 2 — точку спавна мира.",
     "Stell dich in die Arena. Zeile 1 setzt den Respawn aller Online-Spieler, Zeile 2 den Welt-Spawn."
   ),
-  cmds: ["spawnpoint @a ~ ~ ~", "setworldspawn ~ ~ ~"],
+  cmds: ["execute at @p run spawnpoint @a ~ ~ ~", "execute at @p run setworldspawn ~ ~ ~"],
 },
 {
   id: "arena-tpall", cat: "pvp", group: "arena",
   title: T("Teleport all players to me", "Телепортировать всех ко мне", "Alle Spieler zu mir teleportieren"),
   desc: T("Brings every player to your position.", "Перемещает всех игроков к вам.", "Holt alle Spieler zu deiner Position."),
-  cmds: ["tp @a @s"],
+  cmds: ["tp @a @p"],
 },
 {
   id: "arena-spread", cat: "pvp", group: "arena",
@@ -563,8 +565,8 @@ const COMMANDS = [
     "Verteilt alle Spieler im Umkreis von 30 Blöcken, mindestens 5 Blöcke auseinander. Zeile 2 hält Teams zusammen."
   ),
   cmds: [
-    { c: "spreadplayers ~ ~ 5 30 false @a", label: T("Everyone alone", "Каждый сам за себя", "Jeder für sich") },
-    { c: "spreadplayers ~ ~ 10 50 true @a", label: T("Teams stay together", "Команды вместе", "Teams bleiben zusammen") },
+    { c: "execute at @p run spreadplayers ~ ~ 5 30 false @a", label: T("Everyone alone", "Каждый сам за себя", "Jeder für sich") },
+    { c: "execute at @p run spreadplayers ~ ~ 10 50 true @a", label: T("Teams stay together", "Команды вместе", "Teams bleiben zusammen") },
   ],
 },
 {
@@ -576,7 +578,7 @@ const COMMANDS = [
     "Battle-Royale-Stil: Die Grenze ist 200 Blöcke breit und schrumpft in 5 Minuten auf 20 Blöcke."
   ),
   cmds: [
-    { c: "worldborder center ~ ~", label: T("1. Center on you", "1. Центр на вас", "1. Mitte bei dir") },
+    { c: "execute at @p run worldborder center ~ ~", label: T("1. Center on you", "1. Центр на вас", "1. Mitte bei dir") },
     { c: "worldborder set 200", label: T("2. Start size", "2. Начальный размер", "2. Startgröße") },
     { c: "worldborder set 20 300s", label: T("3. Shrink over 300 seconds", "3. Сужение за 300 секунд", "3. In 300 Sekunden schrumpfen") },
     { c: "worldborder set 59999968", label: T("Reset to normal", "Вернуть как было", "Zurücksetzen") },
@@ -637,7 +639,7 @@ const COMMANDS = [
     "Перейдите в режим наблюдателя и смотрите матч глазами игрока. Чтобы выйти, введите просто «spectate».",
     "Wechsle in den Zuschauermodus und sieh das Match aus Sicht eines Spielers. Nur „spectate“ beendet es."
   ),
-  cmds: ["gamemode spectator {T}", "spectate {NAME}", { c: "spectate", label: T("Stop spectating", "Перестать наблюдать", "Zuschauen beenden") }],
+  cmds: ["gamemode spectator {T}", "spectate {NAME} @p", { c: "execute as @p run spectate", label: T("Stop spectating", "Перестать наблюдать", "Zuschauen beenden") }],
 },
 {
   id: "arena-glow", cat: "pvp", group: "arena",
@@ -654,9 +656,9 @@ const COMMANDS = [
     "Ein Mob, der stillsteht, nie verschwindet und in der Sonne nicht brennt. Zeilen 2–3 geben ihm 500 LP."
   ),
   cmds: [
-    'summon minecraft:husk ~ ~ ~ {NoAI:1b,PersistenceRequired:1b,Silent:1b,CustomName:"Training Dummy",CustomNameVisible:1b}',
-    { c: "attribute @e[type=minecraft:husk,sort=nearest,limit=1] minecraft:max_health base set 500", label: T("Optional: 500 max HP", "Необязательно: 500 макс. HP", "Optional: 500 max. LP") },
-    { c: "data merge entity @e[type=minecraft:husk,sort=nearest,limit=1] {Health:500f}", label: T("Optional: fill up the HP", "Необязательно: заполнить HP", "Optional: LP auffüllen") },
+    'execute at @p run summon minecraft:husk ~ ~ ~2 {NoAI:1b,PersistenceRequired:1b,Silent:1b,CustomName:"Training Dummy",CustomNameVisible:1b}',
+    { c: "execute at @p run attribute @e[type=minecraft:husk,sort=nearest,limit=1] minecraft:max_health base set 500", label: T("Optional: 500 max HP", "Необязательно: 500 макс. HP", "Optional: 500 max. LP") },
+    { c: "execute at @p run data merge entity @e[type=minecraft:husk,sort=nearest,limit=1] {Health:500f}", label: T("Optional: fill up the HP", "Необязательно: заполнить HP", "Optional: LP auffüllen") },
     { c: 'kill @e[type=minecraft:husk,name="Training Dummy"]', label: T("Remove dummies", "Убрать манекены", "Puppen entfernen") },
   ],
 },
@@ -972,9 +974,9 @@ const COMMANDS = [
     "Beschwört ein gezähmtes Pferd und macht es schnell und sprungstark. Satteln, Rüstung drauf und los — ideal für Speer-Angriffe."
   ),
   cmds: [
-    "summon minecraft:horse ~ ~ ~ {Tame:1b}",
-    { c: "attribute @e[type=minecraft:horse,sort=nearest,limit=1] minecraft:movement_speed base set 0.3375", label: T("Max speed", "Макс. скорость", "Max. Tempo") },
-    { c: "attribute @e[type=minecraft:horse,sort=nearest,limit=1] minecraft:jump_strength base set 1", label: T("Max jump", "Макс. прыжок", "Max. Sprung") },
+    "execute at @p run summon minecraft:horse ~ ~ ~ {Tame:1b}",
+    { c: "execute at @p run attribute @e[type=minecraft:horse,sort=nearest,limit=1] minecraft:movement_speed base set 0.3375", label: T("Max speed", "Макс. скорость", "Max. Tempo") },
+    { c: "execute at @p run attribute @e[type=minecraft:horse,sort=nearest,limit=1] minecraft:jump_strength base set 1", label: T("Max jump", "Макс. прыжок", "Max. Sprung") },
     "give {T} minecraft:saddle",
     { c: "give {T} minecraft:netherite_horse_armor", label: T("New in 1.21.11", "Новое в 1.21.11", "Neu in 1.21.11") },
   ],
@@ -988,7 +990,7 @@ const COMMANDS = [
     "Neu in 1.21.11. Mit Kugelfisch zähmen (je 1 zu 3 Chance), dann satteln und Rüstung anlegen."
   ),
   cmds: [
-    "summon minecraft:nautilus ~ ~ ~",
+    "execute at @p run summon minecraft:nautilus ~ ~ ~",
     "give {T} minecraft:pufferfish 8",
     "give {T} minecraft:saddle",
     "give {T} minecraft:netherite_nautilus_armor",
@@ -998,7 +1000,7 @@ const COMMANDS = [
   id: "mv-tp-coords", cat: "movement",
   title: T("Teleport to coordinates", "Телепорт по координатам", "Zu Koordinaten teleportieren"),
   desc: T("Replace x y z with numbers (F3 shows yours).", "Замените x y z числами (F3 показывает ваши).", "Ersetze x y z durch Zahlen (F3 zeigt deine)."),
-  cmds: ["tp {T} x y z", { c: "tp {T} ~ ~50 ~", label: T("50 blocks up", "На 50 блоков вверх", "50 Blöcke nach oben") }],
+  cmds: ["tp {T} x y z", { c: "execute as {T} at @s run tp @s ~ ~50 ~", label: T("50 blocks up", "На 50 блоков вверх", "50 Blöcke nach oben") }],
 },
 
 /* ───────────────────────────── EFFECTS ───────────────────────────── */
@@ -1146,8 +1148,8 @@ const COMMANDS = [
   title: T("Teleport to / bring a player", "Телепорт к игроку / призвать игрока", "Zu Spieler teleportieren / Spieler holen"),
   desc: T("Go to a player, or pull a player to you.", "Перейти к игроку или притянуть игрока к себе.", "Zu einem Spieler gehen oder ihn zu dir holen."),
   cmds: [
-    { c: "tp @s {NAME}", label: T("Me → player", "Я → игрок", "Ich → Spieler") },
-    { c: "tp {NAME} @s", label: T("Player → me", "Игрок → ко мне", "Spieler → zu mir") },
+    { c: "tp @p {NAME}", label: T("Me → player", "Я → игрок", "Ich → Spieler") },
+    { c: "tp {NAME} @p", label: T("Player → me", "Игрок → ко мне", "Spieler → zu mir") },
   ],
 },
 {
@@ -1260,7 +1262,7 @@ const COMMANDS = [
   id: "pl-respawn", cat: "player",
   title: T("Respawn (kill yourself)", "Возродиться (убить себя)", "Respawnen (dich selbst töten)"),
   desc: T("Useful when you are stuck.", "Полезно, если вы застряли.", "Hilfreich, wenn du feststeckst."),
-  cmds: ["kill @s"],
+  cmds: ["kill @p"],
   warn: T("You drop your items unless keep_inventory is on.", "Вещи выпадут, если не включён keep_inventory.", "Du verlierst deine Items, außer keep_inventory ist an."),
 },
 
@@ -1333,10 +1335,7 @@ const COMMANDS = [
     "В 1.21.11 doFireTick заменили правилом радиуса: 0 отключает распространение огня, -1 — без ограничений.",
     "1.21.11 hat doFireTick durch eine Radius-Regel ersetzt: 0 schaltet Feuerausbreitung aus, -1 heißt unbegrenzt."
   ),
-  cmds: [
-    { c: "gamerule fire_spread_radius_around_player 0", label: GR_NEW },
-    { c: "gamerule doFireTick false", label: GR_OLD },
-  ],
+  cmds: [{ c: "gamerule fire_spread_radius_around_player 0", label: T("1.21.11 name (was doFireTick false)", "имя в 1.21.11 (раньше doFireTick false)", "Name in 1.21.11 (früher doFireTick false)") }],
   note: GR_NOTE,
 },
 {
@@ -1360,17 +1359,6 @@ const COMMANDS = [
   cmds: [...grLines("random_tick_speed", "randomTickSpeed", "30"),
     { c: "gamerule random_tick_speed 3", label: T("Back to default (1.21.11+)", "По умолчанию (1.21.11+)", "Standard (1.21.11+)") }],
   warn: T("Very high values cause lag.", "Очень большие значения вызывают лаги.", "Sehr hohe Werte verursachen Lag."),
-},
-{
-  id: "wd-tick", cat: "world",
-  title: T("Freeze or speed up the game", "Заморозить или ускорить игру", "Spiel einfrieren oder beschleunigen"),
-  desc: T("Freeze stops mobs, crops and redstone. Normal tick rate is 20.", "Заморозка останавливает мобов, растения и редстоун. Обычная скорость — 20.", "Einfrieren stoppt Mobs, Pflanzen und Redstone. Normale Tickrate ist 20."),
-  cmds: [
-    { c: "tick freeze", label: T("Freeze", "Заморозить", "Einfrieren") },
-    { c: "tick unfreeze", label: T("Unfreeze", "Разморозить", "Auftauen") },
-    { c: "tick rate 40", label: T("Double speed", "Двойная скорость", "Doppeltes Tempo") },
-    { c: "tick rate 20", label: T("Normal", "Обычная", "Normal") },
-  ],
 },
 {
   id: "wd-fill", cat: "world", group: "fill",
@@ -1414,27 +1402,27 @@ const COMMANDS = [
   id: "bd-platform", cat: "building",
   title: T("11×11 floor under you", "Пол 11×11 под вами", "11×11-Boden unter dir"),
   desc: T("Instant platform — great for sky arenas.", "Мгновенная платформа — отлично для арен в небе.", "Sofort-Plattform — super für Himmelsarenen."),
-  cmds: ["fill ~-5 ~-1 ~-5 ~5 ~-1 ~5 minecraft:smooth_stone"],
+  cmds: ["execute at @p run fill ~-5 ~-1 ~-5 ~5 ~-1 ~5 minecraft:smooth_stone"],
 },
 {
   id: "bd-arena-box", cat: "building",
   title: T("Glass arena box (31×17×31)", "Стеклянная арена (31×17×31)", "Glas-Arenabox (31×17×31)"),
   desc: T("Builds a hollow glass box around you. Fly high into the sky first.", "Строит полую стеклянную коробку вокруг вас. Сначала поднимитесь высоко в небо.", "Baut eine hohle Glasbox um dich. Flieg vorher hoch in den Himmel."),
-  cmds: ["fill ~-15 ~-1 ~-15 ~15 ~15 ~15 minecraft:glass hollow"],
+  cmds: ["execute at @p run fill ~-15 ~-1 ~-15 ~15 ~15 ~15 minecraft:glass hollow"],
   warn: T("“hollow” turns everything inside into air — including terrain.", "«hollow» превращает всё внутри в воздух — включая местность.", "„hollow“ macht alles im Inneren zu Luft — auch Gelände."),
 },
 {
   id: "bd-walls", cat: "building",
   title: T("Invisible barrier walls", "Невидимые стены-барьеры", "Unsichtbare Barriere-Wände"),
   desc: T("“outline” only replaces the outer shell and keeps the inside.", "«outline» заменяет только внешнюю оболочку, внутри всё остаётся.", "„outline“ ersetzt nur die Außenhülle, das Innere bleibt."),
-  cmds: ["fill ~-15 ~-1 ~-15 ~15 ~15 ~15 minecraft:barrier outline"],
+  cmds: ["execute at @p run fill ~-15 ~-1 ~-15 ~15 ~15 ~15 minecraft:barrier outline"],
   warn: T("The floor and roof become barriers too.", "Пол и потолок тоже станут барьерами.", "Boden und Decke werden auch zu Barrieren."),
 },
 {
   id: "bd-clear", cat: "building",
   title: T("Clear an area", "Расчистить область", "Bereich freiräumen"),
   desc: T("Removes all blocks in a 21×11×21 area around you.", "Удаляет все блоки в области 21×11×21 вокруг вас.", "Entfernt alle Blöcke in einem 21×11×21-Bereich um dich."),
-  cmds: ["fill ~-10 ~ ~-10 ~10 ~10 ~10 minecraft:air"],
+  cmds: ["execute at @p run fill ~-10 ~ ~-10 ~10 ~10 ~10 minecraft:air"],
   warn: T("Blocks are deleted for good — no undo!", "Блоки удаляются навсегда — отмены нет!", "Blöcke werden endgültig gelöscht — kein Rückgängig!"),
 },
 {
@@ -1442,8 +1430,8 @@ const COMMANDS = [
   title: T("Remove water or lava nearby", "Убрать воду или лаву рядом", "Wasser oder Lava entfernen"),
   desc: T("Only water/lava is replaced, other blocks stay.", "Заменяется только вода/лава, остальные блоки остаются.", "Nur Wasser/Lava wird ersetzt, andere Blöcke bleiben."),
   cmds: [
-    "fill ~-10 ~-5 ~-10 ~10 ~5 ~10 minecraft:air replace minecraft:water",
-    "fill ~-10 ~-5 ~-10 ~10 ~5 ~10 minecraft:air replace minecraft:lava",
+    "execute at @p run fill ~-10 ~-5 ~-10 ~10 ~5 ~10 minecraft:air replace minecraft:water",
+    "execute at @p run fill ~-10 ~-5 ~-10 ~10 ~5 ~10 minecraft:air replace minecraft:lava",
   ],
 },
 {
@@ -1507,7 +1495,7 @@ const COMMANDS = [
   id: "bd-spawnradius", cat: "building",
   title: T("Exact spawn point (lobbies)", "Точная точка спавна (лобби)", "Exakter Spawnpunkt (Lobbys)"),
   desc: T("New players and players without a bed appear exactly at the world spawn.", "Новые игроки и игроки без кровати появляются ровно на точке спавна.", "Neue Spieler und Spieler ohne Bett erscheinen genau am Welt-Spawn."),
-  cmds: ["setworldspawn ~ ~ ~", ...grLines("respawn_radius", "spawnRadius", "0")],
+  cmds: ["execute at @p run setworldspawn ~ ~ ~", ...grLines("respawn_radius", "spawnRadius", "0")],
   note: GR_NOTE,
 },
 
@@ -1581,9 +1569,9 @@ const COMMANDS = [
   id: "bo-warning", cat: "bosses",
   title: T("Read this before summoning", "Прочтите перед призывом", "Vor dem Beschwören lesen"),
   desc: T(
-    "Turn off mob_griefing (World tab) to protect your builds.",
-    "Отключите mob_griefing (вкладка «Мир»), чтобы защитить постройки.",
-    "Schalte mob_griefing aus (Reiter „Welt“), um deine Bauten zu schützen."
+    "Turn off mob_griefing (World tab) to protect your builds. On Peaceful, hostile mobs and bosses like the Wither and Warden can’t be summoned at all — use Easy or higher.",
+    "Отключите mob_griefing (вкладка «Мир»), чтобы защитить постройки. На мирной сложности враждебных мобов и боссов вроде иссушителя и хранителя призвать нельзя — нужна лёгкая или выше.",
+    "Schalte mob_griefing aus (Reiter „Welt“), um deine Bauten zu schützen. Auf Friedlich lassen sich feindliche Mobs und Bosse wie Wither und Wärter gar nicht beschwören — nimm Einfach oder höher."
   ),
   cmds: [],
   warn: T(
@@ -1596,46 +1584,46 @@ const COMMANDS = [
   id: "bo-dragon", cat: "bosses",
   title: T("Ender Dragon", "Эндер-дракон", "Enderdrache"),
   desc: T("Spawns 10 blocks above you.", "Появляется в 10 блоках над вами.", "Erscheint 10 Blöcke über dir."),
-  cmds: ["summon minecraft:ender_dragon ~ ~10 ~"],
+  cmds: ["execute at @p run summon minecraft:ender_dragon ~ ~10 ~"],
   warn: T("Destroys blocks. No dragon egg.", "Разрушает блоки. Без яйца дракона.", "Zerstört Blöcke. Kein Drachenei."),
 },
 {
   id: "bo-dragon-active", cat: "bosses",
   title: T("Active dragon (attacks right away)", "Активный дракон (сразу атакует)", "Aktiver Drache (greift sofort an)"),
   desc: T("Phase 0 = circling and attacking.", "Фаза 0 = кружит и атакует.", "Phase 0 = kreisen und angreifen."),
-  cmds: ["summon minecraft:ender_dragon ~ ~10 ~ {DragonPhase:0}"],
+  cmds: ["execute at @p run summon minecraft:ender_dragon ~ ~10 ~ {DragonPhase:0}"],
   warn: T("Destroys blocks. No dragon egg.", "Разрушает блоки. Без яйца дракона.", "Zerstört Blöcke. Kein Drachenei."),
 },
 {
   id: "bo-dragon-frozen", cat: "bosses",
   title: T("Frozen dragon (statue)", "Замороженный дракон (статуя)", "Eingefrorener Drache (Statue)"),
   desc: T("No AI — it just hangs in the air. Great decoration.", "Без ИИ — просто висит в воздухе. Отличное украшение.", "Keine KI — schwebt nur in der Luft. Tolle Deko."),
-  cmds: ["summon minecraft:ender_dragon ~ ~10 ~ {NoAI:1b}"],
+  cmds: ["execute at @p run summon minecraft:ender_dragon ~ ~10 ~ {NoAI:1b}"],
 },
 {
   id: "bo-wither", cat: "bosses",
   title: T("Wither", "Иссушитель", "Wither"),
   desc: T("Explodes when it spawns, then attacks everything.", "Взрывается при появлении, затем атакует всех.", "Explodiert beim Erscheinen und greift dann alles an."),
-  cmds: ["summon minecraft:wither ~ ~5 ~"],
+  cmds: ["execute at @p run summon minecraft:wither ~ ~5 ~"],
   warn: T("Destroys blocks.", "Разрушает блоки.", "Zerstört Blöcke."),
 },
 {
   id: "bo-warden", cat: "bosses",
   title: T("Warden", "Хранитель", "Wärter"),
   desc: T("Blind but hears everything — and hits very hard.", "Слепой, но всё слышит — и бьёт очень сильно.", "Blind, hört aber alles — und schlägt sehr hart zu."),
-  cmds: ["summon minecraft:warden ~ ~ ~"],
+  cmds: ["execute at @p run summon minecraft:warden ~ ~ ~3"],
 },
 {
   id: "bo-elder", cat: "bosses",
   title: T("Elder Guardian", "Древний страж", "Großer Wächter"),
   desc: T("Best summoned in water. Gives Mining Fatigue.", "Лучше призывать в воде. Накладывает Усталость.", "Am besten im Wasser beschwören. Gibt Abbaulähmung."),
-  cmds: ["summon minecraft:elder_guardian ~ ~ ~"],
+  cmds: ["execute at @p run summon minecraft:elder_guardian ~ ~ ~3"],
 },
 {
   id: "bo-giant", cat: "bosses",
   title: T("Giant (hidden mob)", "Великан (скрытый моб)", "Riese (versteckter Mob)"),
   desc: T("A huge zombie that exists only via commands. It doesn't move.", "Огромный зомби, доступный только через команды. Не двигается.", "Ein riesiger Zombie, nur per Befehl. Er bewegt sich nicht."),
-  cmds: ["summon minecraft:giant ~ ~ ~"],
+  cmds: ["execute at @p run summon minecraft:giant ~ ~ ~5"],
 },
 {
   id: "bo-remove", cat: "bosses",
@@ -1676,13 +1664,7 @@ const COMMANDS = [
   id: "fun-particles", cat: "fun",
   title: T("Totem particle burst", "Взрыв частиц тотема", "Totem-Partikelexplosion"),
   desc: T("A colorful celebration effect at your position.", "Красочный праздничный эффект на вашей позиции.", "Ein bunter Jubel-Effekt an deiner Position."),
-  cmds: ["particle minecraft:totem_of_undying ~ ~1 ~ 0.5 1 0.5 0.5 300"],
-},
-{
-  id: "fun-slowmo", cat: "fun",
-  title: T("Slow motion", "Замедленная съёмка", "Zeitlupe"),
-  desc: T("The whole world runs at 1/4 speed.", "Весь мир работает на 1/4 скорости.", "Die ganze Welt läuft mit 1/4 Tempo."),
-  cmds: ["tick rate 5", { c: "tick rate 20", label: T("Back to normal", "Вернуть как было", "Zurück zu normal") }],
+  cmds: ["execute at {T} run particle minecraft:totem_of_undying ~ ~1 ~ 0.5 1 0.5 0.5 300"],
 },
 {
   id: "fun-dice", cat: "fun",
@@ -1903,7 +1885,7 @@ const COMMANDS = [
     "Радиус взрыва 20 вместо 3, уже подожжён.",
     "Explosionsradius 20 statt 3, bereits gezündet."
   ),
-  cmds: ["summon minecraft:creeper ~ ~ ~5 {ExplosionRadius:20b,Fuse:60s,ignited:1b,powered:1b}"],
+  cmds: ["execute at @p run summon minecraft:creeper ~ ~ ~5 {ExplosionRadius:20b,Fuse:60s,ignited:1b,powered:1b}"],
   warn: T(
     "Leaves a huge crater. Turn off mob_griefing first if you want your build to survive.",
     "Оставляет огромный кратер. Сначала отключите mob_griefing, если хотите сохранить постройку.",
@@ -2020,9 +2002,9 @@ const COMMANDS = [
     "minecraft:smoke", "minecraft:crit", "minecraft:enchant", "minecraft:portal",
   ] }],
   cmds: [
-    "particle {par} ~ ~1 ~ 0.5 0.5 0.5 0.1 100",
+    { c: "particle {par} ~ ~1 ~ 0.5 0.5 0.5 0.1 100", label: T("At the command block", "У командного блока", "Am Befehlsblock") },
     { c: "execute at {T} run particle {par} ~ ~1 ~ 0.4 0.8 0.4 0.05 60", label: T("At the player", "У игрока", "Beim Spieler") },
-    { c: 'particle minecraft:dust{color:[1.0,0.2,0.2],scale:2.0} ~ ~1 ~ 0.5 0.5 0.5 0 80', label: T("Coloured dust", "Цветная пыль", "Farbiger Staub") },
+    { c: 'execute at {T} run particle minecraft:dust{color:[1.0,0.2,0.2],scale:2.0} ~ ~1 ~ 0.5 0.5 0.5 0 80', label: T("Coloured dust", "Цветная пыль", "Farbiger Staub") },
   ],
 },
 {
@@ -2121,8 +2103,8 @@ const COMMANDS = [
     "ride setzt eine Entität auf eine andere — Huhn auf Zombie, Spieler auf Drachen."
   ),
   cmds: [
-    "summon minecraft:zombie ~ ~ ~2",
-    "execute as {T} run ride @s mount @e[type=minecraft:zombie,limit=1,sort=nearest]",
+    "execute at @p run summon minecraft:zombie ~ ~ ~2",
+    "execute as {T} at @s run ride @s mount @e[type=minecraft:zombie,limit=1,sort=nearest]",
     { c: "ride {T} dismount", label: T("Get off", "Слезть", "Absteigen") },
   ],
 },
@@ -2135,7 +2117,7 @@ const COMMANDS = [
     "Ein Marker-Rüstungsständer hat keine Hitbox und keine Schwerkraft — der Standard-Anker für Befehlskonstruktionen."
   ),
   cmds: [
-    'summon minecraft:armor_stand ~ ~ ~ {Marker:1b,Invisible:1b,NoGravity:1b,Tags:["anchor"]}',
+    'execute at @p run summon minecraft:armor_stand ~ ~ ~ {Marker:1b,Invisible:1b,NoGravity:1b,Tags:["anchor"]}',
     { c: "execute at @e[tag=anchor,limit=1] run particle minecraft:end_rod ~ ~1 ~ 0 0 0 0 5", label: T("Use it as a position", "Использовать как точку", "Als Position nutzen") },
     { c: "kill @e[tag=anchor]", label: T("Remove markers", "Удалить маркеры", "Marker entfernen") },
   ],
@@ -2151,7 +2133,7 @@ const COMMANDS = [
   cmds: [
     "data get entity {NAME} Pos",
     "data get entity {NAME} Inventory",
-    "data get block ~ ~-1 ~",
+    { c: "data get block ~ ~-1 ~", label: T("Block under the command block — result appears in Previous Output", "Блок под командным блоком — результат в «Предыдущем выводе»", "Block unter dem Befehlsblock — Ergebnis unter „Letzte Ausgabe“") },
     { c: "data merge entity @e[type=minecraft:zombie,limit=1,sort=nearest] {NoAI:1b,Silent:1b}", label: T("Freeze the nearest zombie", "Заморозить ближайшего зомби", "Nächsten Zombie einfrieren") },
   ],
 },
@@ -2164,10 +2146,10 @@ const COMMANDS = [
     "Das scale-Attribut wirkt bei jedem Mob, nicht nur bei Spielern."
   ),
   cmds: [
-    "summon minecraft:zombie ~ ~ ~3",
-    "attribute @e[type=minecraft:zombie,limit=1,sort=nearest] minecraft:scale base set 6",
-    "attribute @e[type=minecraft:zombie,limit=1,sort=nearest] minecraft:max_health base set 400",
-    "attribute @e[type=minecraft:zombie,limit=1,sort=nearest] minecraft:attack_damage base set 25",
+    "execute at @p run summon minecraft:zombie ~ ~ ~3",
+    "execute at @p run attribute @e[type=minecraft:zombie,limit=1,sort=nearest] minecraft:scale base set 6",
+    "execute at @p run attribute @e[type=minecraft:zombie,limit=1,sort=nearest] minecraft:max_health base set 400",
+    "execute at @p run attribute @e[type=minecraft:zombie,limit=1,sort=nearest] minecraft:attack_damage base set 25",
   ],
   warn: T("A scale-6 zombie breaks doors and walks over walls.", "Зомби масштаба 6 ломает двери и перешагивает стены.", "Ein Zombie mit Skalierung 6 bricht Türen auf und steigt über Mauern."),
 },
@@ -2190,12 +2172,12 @@ const COMMANDS = [
   id: "un-fillbiome", cat: "unusual",
   title: T("Change the biome of an area", "Сменить биом области", "Biom eines Gebiets ändern"),
   desc: T(
-    "Changes sky colour, water colour, mob spawns and weather — no world edit needed.",
-    "Меняет цвет неба и воды, спавн мобов и погоду — без внешних редакторов.",
-    "Ändert Himmel- und Wasserfarbe, Mob-Spawns und Wetter — ganz ohne Welteditor."
+    "Changes sky colour, water colour, mob spawns and weather in a 33×17×33 area around the player (fill’s 32,768-block limit applies).",
+    "Меняет цвет неба и воды, спавн мобов и погоду в области 33×17×33 вокруг игрока (действует лимит 32 768 блоков, как у fill).",
+    "Ändert Himmel- und Wasserfarbe, Mob-Spawns und Wetter in einem 33×17×33-Bereich um den Spieler (Limit von 32.768 Blöcken wie bei fill)."
   ),
   opts: [{ key: "bi", label: T("Biome", "Биом", "Biom"), values: BIOMES }],
-  cmds: ["fillbiome ~-32 ~-32 ~-32 ~32 ~32 ~32 minecraft:{bi}"],
+  cmds: ["execute at @p run fillbiome ~-16 ~-8 ~-16 ~16 ~8 ~16 minecraft:{bi}"],
 },
 {
   id: "un-loot", cat: "unusual",
@@ -2206,9 +2188,9 @@ const COMMANDS = [
     "loot gibt genau das aus, was ein Block, ein Mob oder eine Truhe fallen lassen würde."
   ),
   cmds: [
-    { c: "loot give {T} mine ~ ~-1 ~", label: T("As if you mined that block", "Как будто сломали этот блок", "Als hättest du den Block abgebaut") },
-    { c: "loot give {T} kill @e[type=minecraft:zombie,limit=1,sort=nearest]", label: T("As if you killed that mob", "Как будто убили этого моба", "Als hättest du den Mob getötet") },
-    { c: "loot spawn ~ ~1 ~ loot minecraft:chests/end_city_treasure", label: T("Drop chest loot on the floor", "Высыпать лут сундука на пол", "Truhenbeute auf den Boden werfen") },
+    { c: "execute as {T} at @s run loot give @s mine ~ ~-1 ~", label: T("As if you mined that block", "Как будто сломали этот блок", "Als hättest du den Block abgebaut") },
+    { c: "execute as {T} at @s run loot give @s kill @e[type=minecraft:zombie,limit=1,sort=nearest]", label: T("As if you killed that mob", "Как будто убили этого моба", "Als hättest du den Mob getötet") },
+    { c: "execute at {T} run loot spawn ~ ~1 ~ loot minecraft:chests/end_city_treasure", label: T("Drop chest loot on the floor", "Высыпать лут сундука на пол", "Truhenbeute auf den Boden werfen") },
   ],
 },
 {
@@ -2233,8 +2215,8 @@ const COMMANDS = [
     "Setzt ein Vanilla-Bauwerk genau dort ab. Drücke Tab nach „place structure “, um alle zu sehen."
   ),
   cmds: [
-    "place structure minecraft:igloo ~ ~ ~",
-    "place structure minecraft:desert_pyramid ~ ~ ~",
+    "execute at @p run place structure minecraft:igloo ~ ~ ~",
+    "execute at @p run place structure minecraft:desert_pyramid ~ ~ ~",
   ],
   warn: T("Overwrites whatever is already there.", "Перезаписывает всё, что там было.", "Überschreibt alles, was dort schon steht."),
 },
@@ -2248,7 +2230,7 @@ const COMMANDS = [
   ),
   cmds: [
     "item replace entity {T} weapon.offhand from entity {T} weapon.mainhand",
-    "item replace entity {T} weapon.mainhand from block ~ ~-1 ~ container.0",
+    { c: "item replace entity {T} weapon.mainhand from block ~ ~-1 ~ container.0", label: T("From slot 1 of a chest under the command block", "Из 1-го слота сундука под командным блоком", "Aus Slot 1 einer Truhe unter dem Befehlsblock") },
   ],
 },
 {
@@ -2305,7 +2287,7 @@ const REFERENCE = [
     ex: ["damage {T} 6", "damage {T} 6 minecraft:magic"] },
   { cmd: "data", lvl: 2,
     desc: T("Read, merge or remove NBT data of entities, blocks and storage.", "Читать, изменять и удалять NBT-данные сущностей, блоков и хранилища.", "NBT-Daten von Entitäten, Blöcken und Storage lesen, ändern oder löschen."),
-    ex: ["data get entity {NAME} Pos", "data get block ~ ~-1 ~", "data merge entity @e[type=minecraft:zombie,limit=1,sort=nearest] {NoAI:1b}"] },
+    ex: ["data get entity {NAME} Pos", "data get entity @p Health", "data merge entity @e[type=minecraft:zombie,limit=1,sort=nearest] {NoAI:1b}"] },
   { cmd: "datapack", lvl: 2,
     desc: T("List, enable or disable data packs.", "Список, включение и отключение датапаков.", "Datenpakete auflisten, aktivieren oder deaktivieren."),
     ex: ["datapack list", "datapack list available"] },
@@ -2338,10 +2320,10 @@ const REFERENCE = [
     ex: ["fetchprofile name {NAME}"] },
   { cmd: "fill", lvl: 2,
     desc: T("Fill a region with one block. Modes: replace, hollow, outline, keep, destroy.", "Заполнить область одним блоком. Режимы: replace, hollow, outline, keep, destroy.", "Einen Bereich mit einem Block füllen. Modi: replace, hollow, outline, keep, destroy."),
-    ex: ["fill ~-5 ~ ~-5 ~5 ~ ~5 minecraft:stone", "fill ~-5 ~ ~-5 ~5 ~5 ~5 minecraft:glass hollow", "fill x1 y1 z1 x2 y2 z2 minecraft:air replace minecraft:water"] },
+    ex: ["execute at @p run fill ~-5 ~-1 ~-5 ~5 ~-1 ~5 minecraft:stone", "execute at @p run fill ~-5 ~ ~-5 ~5 ~5 ~5 minecraft:glass hollow", "fill x1 y1 z1 x2 y2 z2 minecraft:air replace minecraft:water"] },
   { cmd: "fillbiome", lvl: 2,
-    desc: T("Change the biome of a region.", "Сменить биом в области.", "Das Biom eines Bereichs ändern."),
-    ex: ["fillbiome ~-16 ~-16 ~-16 ~16 ~16 ~16 minecraft:cherry_grove"] },
+    desc: T("Change the biome of a region. Same 32,768-block limit as fill.", "Сменить биом в области. Тот же лимит 32 768 блоков, что у fill.", "Das Biom eines Bereichs ändern. Gleiches Limit von 32.768 Blöcken wie bei fill."),
+    ex: ["execute at @p run fillbiome ~-16 ~-8 ~-16 ~16 ~8 ~16 minecraft:cherry_grove"] },
   { cmd: "forceload", lvl: 2,
     desc: T("Keep chunks loaded even with no player nearby.", "Держать чанки загруженными без игроков рядом.", "Chunks geladen halten, auch ohne Spieler in der Nähe."),
     ex: ["forceload add ~ ~", "forceload query", "forceload remove all"] },
@@ -2364,7 +2346,7 @@ const REFERENCE = [
     desc: T("Replace or copy the item in a specific slot.", "Заменить или скопировать предмет в конкретном слоте.", "Das Item in einem bestimmten Slot ersetzen oder kopieren."),
     ex: ["item replace entity {T} weapon.offhand with minecraft:totem_of_undying",
       "item replace entity {T} armor.head with minecraft:carved_pumpkin",
-      "item replace entity {T} weapon.mainhand from block ~ ~-1 ~ container.0"] },
+      "item replace entity {T} hotbar.0 from entity {T} weapon.offhand"] },
   { cmd: "kill", lvl: 2,
     desc: T("Remove entities. Always filter the selector.", "Удалить сущности. Всегда фильтруйте селектор.", "Entitäten entfernen. Den Selektor immer filtern."),
     ex: ["kill @e[type=minecraft:item]", "kill @e[type=!minecraft:player,distance=..50]"] },
@@ -2373,7 +2355,7 @@ const REFERENCE = [
     ex: ["locate structure minecraft:ancient_city", "locate biome minecraft:cherry_grove", "locate poi minecraft:lodestone"] },
   { cmd: "loot", lvl: 2,
     desc: T("Produce the drops of a block, mob or loot table without touching it.", "Получить дроп блока, моба или лут-таблицы, не трогая их.", "Die Beute eines Blocks, Mobs oder einer Loot-Tabelle erzeugen, ohne ihn anzufassen."),
-    ex: ["loot give {T} loot minecraft:chests/simple_dungeon", "loot spawn ~ ~1 ~ mine ~ ~-1 ~", "loot insert ~1 ~ ~ loot minecraft:chests/ancient_city"] },
+    ex: ["loot give {T} loot minecraft:chests/simple_dungeon", "loot spawn ~ ~1 ~ mine ~ ~-1 ~", "execute at @p run loot spawn ~ ~1 ~ loot minecraft:chests/ancient_city"] },
 ];
 
 REFERENCE.push(
@@ -2388,7 +2370,7 @@ REFERENCE.push(
     ex: ["particle minecraft:flame ~ ~1 ~ 0.3 0.3 0.3 0 40", 'particle minecraft:dust{color:[1.0,0.2,0.2],scale:2.0} ~ ~1 ~ 0.5 0.5 0.5 0 80'] },
   { cmd: "place", lvl: 2,
     desc: T("Place a structure, feature or jigsaw piece.", "Поставить структуру, фичу или jigsaw-часть.", "Ein Bauwerk, Feature oder Jigsaw-Teil setzen."),
-    ex: ["place structure minecraft:igloo ~ ~ ~"] },
+    ex: ["execute at @p run place structure minecraft:igloo ~ ~ ~"] },
   { cmd: "playsound", lvl: 2,
     desc: T("Play any sound event. Run it at the player so distance doesn't mute it.", "Проиграть любой звук. Выполняйте у игрока, чтобы расстояние не глушило.", "Ein beliebiges Soundereignis abspielen. Beim Spieler ausführen, damit die Entfernung nichts dämpft."),
     ex: ["execute as @a at @s run playsound minecraft:block.bell.use master @s ~ ~ ~ 1 1"] },
@@ -2430,16 +2412,16 @@ REFERENCE.push(
     ex: ["setblock ~ ~1 ~ minecraft:redstone_block", "setblock ~ ~1 ~ minecraft:oak_door[facing=north,half=lower]", "setblock ~ ~1 ~ minecraft:air destroy"] },
   { cmd: "setworldspawn", lvl: 2,
     desc: T("Set the world spawn point.", "Задать точку спавна мира.", "Den Welt-Spawnpunkt setzen."),
-    ex: ["setworldspawn ~ ~ ~"] },
+    ex: ["execute at @p run setworldspawn ~ ~ ~"] },
   { cmd: "spawnpoint", lvl: 2,
     desc: T("Set the personal respawn point of players.", "Задать личную точку возрождения игроков.", "Den persönlichen Respawn-Punkt von Spielern setzen."),
-    ex: ["spawnpoint @a ~ ~ ~"] },
+    ex: ["execute at @p run spawnpoint @a ~ ~ ~"] },
   { cmd: "spectate", lvl: 2,
     desc: T("Make a spectator follow a target through its eyes.", "Заставить наблюдателя смотреть глазами цели.", "Lässt einen Zuschauer durch die Augen eines Ziels sehen."),
-    ex: ["spectate {NAME}", "spectate"] },
+    ex: ["spectate {NAME} @p", "execute as @p run spectate"] },
   { cmd: "spreadplayers", lvl: 2,
     desc: T("Scatter players randomly, optionally keeping teams together.", "Раскидать игроков случайно, при желании сохраняя команды.", "Spieler zufällig verteilen, optional Teams zusammenhalten."),
-    ex: ["spreadplayers ~ ~ 5 30 false @a", "spreadplayers ~ ~ 10 50 true @a"] },
+    ex: ["execute at @p run spreadplayers ~ ~ 5 30 false @a", "execute at @p run spreadplayers ~ ~ 10 50 true @a"] },
   { cmd: "stopsound", lvl: 2,
     desc: T("Stop sounds that are currently playing.", "Остановить проигрываемые звуки.", "Laufende Töne stoppen."),
     ex: ["stopsound @a", "stopsound @a music"] },
@@ -2448,7 +2430,7 @@ REFERENCE.push(
     ex: ["stopwatch create hub:round", "stopwatch query hub:round", "stopwatch restart hub:round", "stopwatch remove hub:round"] },
   { cmd: "summon", lvl: 2,
     desc: T("Spawn any entity, with NBT for its behaviour.", "Призвать любую сущность, с NBT для поведения.", "Jede Entität beschwören, mit NBT für ihr Verhalten."),
-    ex: ["summon minecraft:wolf ~ ~ ~", "summon minecraft:armor_stand ~ ~ ~ {Marker:1b,Invisible:1b}"] },
+    ex: ["summon minecraft:wolf ~ ~1 ~", "execute at @p run summon minecraft:wolf ~ ~ ~", "summon minecraft:armor_stand ~ ~1 ~ {Marker:1b,Invisible:1b}"] },
   { cmd: "tag", lvl: 2,
     desc: T("Invisible labels on entities, usable in selectors.", "Невидимые метки на сущностях, годятся для селекторов.", "Unsichtbare Markierungen an Entitäten, im Selektor nutzbar."),
     ex: ["tag {T} add vip", "tag {T} remove vip", "tag @a list"] },
@@ -2457,10 +2439,10 @@ REFERENCE.push(
     ex: ["team add red", "team modify red color red", "team modify red friendlyFire false", "team join red {NAME}"] },
   { cmd: "teammsg", lvl: 0, alias: "tm",
     desc: T("Message only your own team.", "Сообщение только своей команде.", "Nachricht nur an das eigene Team."),
-    ex: ["teammsg Push left"] },
+    ex: ["execute as @p run teammsg Push left"] },
   { cmd: "teleport", lvl: 2, alias: "tp",
     desc: T("Move entities to coordinates, to another entity, or make them face something.", "Переместить сущности к координатам, к другой сущности или повернуть к цели.", "Entitäten zu Koordinaten, zu einer anderen Entität bewegen oder ausrichten."),
-    ex: ["tp {T} x y z", "tp @a {NAME}", "tp {T} ~ ~50 ~", "teleport {T} x y z facing 0 64 0"] },
+    ex: ["tp {T} x y z", "tp @a {NAME}", "execute as {T} at @s run tp @s ~ ~50 ~", "teleport {T} x y z facing 0 64 0"] },
   { cmd: "tellraw", lvl: 2,
     desc: T("Chat message with colours, styles, scores and selectors.", "Сообщение в чат с цветом, стилем, очками и селекторами.", "Chatnachricht mit Farben, Stilen, Punkten und Selektoren."),
     ex: ['tellraw @a {"text":"Welcome","color":"gold"}', 'tellraw @a [{"selector":"@p"},{"text":" won!"}]'] },
@@ -2475,7 +2457,7 @@ REFERENCE.push(
     ex: ['title @a title {"text":"GO","color":"green"}', 'title @a actionbar {"text":"30s left"}', "title @a times 10 60 20", "title @a clear"] },
   { cmd: "trigger", lvl: 0,
     desc: T("The only command normal players can always run — it changes a trigger objective, so you can offer them menus.", "Единственная команда, доступная обычным игрокам всегда: меняет цель типа trigger, так можно давать им меню.", "Der einzige Befehl, den normale Spieler immer nutzen dürfen — er ändert ein trigger-Ziel, so baust du ihnen Menüs."),
-    ex: ["scoreboard objectives add menu trigger", "scoreboard players enable @a menu", "trigger menu set 1"] },
+    ex: ["scoreboard objectives add menu trigger", "scoreboard players enable @a menu", "execute as @p run trigger menu set 1"] },
   { cmd: "waypoint", lvl: 2,
     desc: T("Controls locator-bar waypoints (1.21.6+). Press Tab after the command to see its options.", "Управляет точками на панели локатора (1.21.6+). Нажмите Tab после команды, чтобы увидеть опции.", "Steuert Wegpunkte der Ortungsleiste (1.21.6+). Drücke Tab nach dem Befehl für die Optionen."),
     ex: [] },
@@ -2484,7 +2466,7 @@ REFERENCE.push(
     ex: ["weather clear", "weather rain", "weather thunder"] },
   { cmd: "worldborder", lvl: 2,
     desc: T("Move, resize and arm the world border. Times are in ticks since 1.21.11 — add s for seconds.", "Двигать, менять размер и настраивать границу мира. С 1.21.11 время в тиках — добавьте s для секунд.", "Weltbarriere verschieben, ändern und scharf stellen. Zeiten sind seit 1.21.11 in Ticks — s für Sekunden anhängen."),
-    ex: ["worldborder center ~ ~", "worldborder set 200", "worldborder set 20 300s", "worldborder damage amount 2"] }
+    ex: ["execute at @p run worldborder center ~ ~", "worldborder set 200", "worldborder set 20 300s", "worldborder damage amount 2"] }
 );
 
 /* Commands that need permission level 3+ — a command block runs at level 2,
@@ -2638,7 +2620,7 @@ const KIT_PRESETS = [
     items: [...ARMOR_SET, "spear", "shield", "totems", "gapples", "beef", "pearls", "saddle", "horse_armor"],
     extra: [
       "effect give {T} minecraft:saturation infinite 255 true",
-      "summon minecraft:horse ~ ~ ~ {Tame:1b}",
+      "execute at @p run summon minecraft:horse ~ ~ ~ {Tame:1b}",
     ],
     note: T(
       "Lunge costs hunger on every jab — Saturation keeps you fed. Saddle the horse for mounted spear charges.",

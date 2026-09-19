@@ -96,6 +96,9 @@
       borderNote: "Since 1.21.11 a plain number is in ticks — the “s” suffix means seconds.",
       rule: "Game rule", ruleNew: "1.21.11+ (new name)", ruleOld: "Before 1.21.11 (old name)",
       ruleNoOld: "This rule has no old name.",
+      ruleOldHint: "Before 1.21.11 this was {old} — that name no longer works.",
+      ruleInverted: "(with the opposite value)",
+      relHint: "Positions with ~ are wrapped in “execute at …” so they count from the player, not from the command block.",
       ruleTab: "Not sure which name your server accepts? Type /gamerule, a space, then press Tab.",
       /* help */
       helpTitle: "Help",
@@ -186,6 +189,9 @@
       borderNote: "С 1.21.11 число без суффикса — это тики, суффикс «s» — секунды.",
       rule: "Игровое правило", ruleNew: "1.21.11+ (новое имя)", ruleOld: "До 1.21.11 (старое имя)",
       ruleNoOld: "У этого правила нет старого имени.",
+      ruleOldHint: "До 1.21.11 это было {old} — это имя больше не работает.",
+      ruleInverted: "(с противоположным значением)",
+      relHint: "Позиции с ~ оборачиваются в «execute at …», чтобы считаться от игрока, а не от командного блока.",
       ruleTab: "Не знаете, какое имя принимает сервер? Введите /gamerule, пробел и нажмите Tab.",
       helpTitle: "Помощь",
       footer: "Для ванильного Minecraft Java 1.21.11 · Работает полностью в браузере · Не связано с Mojang или Microsoft.",
@@ -275,6 +281,9 @@
       borderNote: "Seit 1.21.11 ist eine reine Zahl in Ticks — das Suffix „s“ bedeutet Sekunden.",
       rule: "Spielregel", ruleNew: "1.21.11+ (neuer Name)", ruleOld: "Vor 1.21.11 (alter Name)",
       ruleNoOld: "Diese Regel hat keinen alten Namen.",
+      ruleOldHint: "Vor 1.21.11 hieß das {old} — dieser Name funktioniert nicht mehr.",
+      ruleInverted: "(mit umgekehrtem Wert)",
+      relHint: "Positionen mit ~ werden in „execute at …“ gepackt, damit sie vom Spieler aus zählen, nicht vom Befehlsblock.",
       ruleTab: "Unsicher, welchen Namen dein Server akzeptiert? Tippe /gamerule, ein Leerzeichen und drücke Tab.",
       helpTitle: "Hilfe",
       footer: "Für Vanilla Minecraft Java 1.21.11 · Läuft komplett im Browser · Nicht mit Mojang oder Microsoft verbunden.",
@@ -681,6 +690,14 @@
     if (opts) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in opts ? opts[k] : m));
     if (wrap) s = "execute as @a run " + s;
     return finalize(s);
+  }
+
+  /**
+   * In a command block, ~ counts from the BLOCK. When a generator uses relative
+   * positions, run the command at the target player instead.
+   */
+  function atTarget(cmd, positions) {
+    return /[~^]/.test(positions) ? "execute at {T} run " + cmd : cmd;
   }
 
   /** Normalised dropdown values: [[value, label], ...] */
@@ -1521,7 +1538,7 @@
       let cmd = `fill ${g.from.trim()} ${g.to.trim()} minecraft:${g.block}`;
       if (g.mode !== "replace") cmd += ` ${g.mode}`;
       else if (g.filter) cmd += ` replace minecraft:${g.filter}`;
-      return [{ text: resolve(cmd) }];
+      return [{ text: resolve(atTarget(cmd, g.from + " " + g.to)) }];
     };
     const out = createOutput(lines);
 
@@ -1533,7 +1550,7 @@
         field(t("mode"), selectEl(FILL_MODES.map((m) => [m, m]), g.mode, (v) => { g.mode = v; out.refresh(); }), modeHint),
         filterField
       ),
-      h("p", { class: "field-hint" }, t("coordHint")),
+      h("p", { class: "field-hint" }, t("coordHint") + " " + t("relHint")),
       countEl,
       out
     );
@@ -1685,7 +1702,8 @@
         if (g.showName) nbt.push("CustomNameVisible:1b");
       }
       const pos = g.pos.trim() || "~ ~ ~";
-      return [{ text: finalize(`summon minecraft:${g.mob} ${pos}` + (nbt.length ? ` {${nbt.join(",")}}` : "")) }];
+      const cmd = `summon minecraft:${g.mob} ${pos}` + (nbt.length ? ` {${nbt.join(",")}}` : "");
+      return [{ text: resolve(atTarget(cmd, pos)) }];
     };
     const out = createOutput(lines);
     renderBaby();
@@ -1695,6 +1713,7 @@
         field(t("position"), textEl(g.pos, "~ ~ ~", (v) => { g.pos = v; out.refresh(); })),
         field(t("customName"), textEl(g.name, "Bob", (v) => { g.name = v; out.refresh(); }))
       ),
+      h("p", { class: "field-hint" }, t("relHint")),
       h("div", { class: "check-grid" },
         checkEl(t("noAI"), g.noai, (v) => { g.noai = v; out.refresh(); }),
         checkEl(t("silent"), g.silent, (v) => { g.silent = v; out.refresh(); }),
@@ -1819,7 +1838,7 @@
       const dmg = clampNum(g.dmg, 0, 1000, 0.2);
       const warn = Math.round(clampNum(g.warn, 0, 1000, 5));
       return [
-        { text: finalize(`worldborder center ${g.x.trim() || "~"} ${g.z.trim() || "~"}`), label: t("bCenter") },
+        { text: resolve(atTarget(`worldborder center ${g.x.trim() || "~"} ${g.z.trim() || "~"}`, g.x + " " + g.z)), label: t("bCenter") },
         { text: finalize(`worldborder set ${start}`), label: t("bStart") },
         { text: finalize(`worldborder set ${end} ${time}s`), label: t("bShrink") },
         { text: finalize(`worldborder damage amount ${dmg}`), label: t("bDamage") },
@@ -1861,23 +1880,24 @@
       valueWrap.replaceChildren(h("span", { class: "field-label" }, t("value")), control);
     }
 
+    // Only the 1.21.11 name is output: a real 1.21.11 server rejects the old
+    // camelCase names ("Incorrect argument"). The old name is shown as history.
+    const noOld = h("p", { class: "field-hint" });
+    const updateNoOld = () => {
+      const [, old, , , , mapping] = byId[g.id];
+      if (!old) { noOld.textContent = t("ruleNoOld"); return; }
+      let hint = old;
+      if (mapping === "invert") hint += " " + t("ruleInverted");
+      noOld.textContent = t("ruleOldHint", { old: hint });
+    };
     const lines = () => {
-      const [id, old, type, def, , mapping] = byId[g.id];
+      const [id, , type, def] = byId[g.id];
       const value = type === "bool"
         ? (g.value === "false" ? "false" : "true")
         : String(Math.round(clampNum(g.value, -1, 100000000, Number(def))));
-      const result = [{ text: `gamerule ${id} ${value}`, label: t("ruleNew") }];
-      if (old) {
-        let oldValue = value;
-        if (mapping === "invert") oldValue = value === "true" ? "false" : "true";
-        if (mapping === "fire") oldValue = value === "0" ? "false" : "true";
-        result.push({ text: `gamerule ${old} ${oldValue}`, label: t("ruleOld") });
-      }
-      return result;
+      return [{ text: `gamerule ${id} ${value}` }];
     };
     const out = createOutput(lines, { copyAll: false });
-    const noOld = h("p", { class: "field-hint" });
-    const updateNoOld = () => { noOld.textContent = byId[g.id][1] ? "" : t("ruleNoOld"); };
 
     renderValue();
     updateNoOld();
